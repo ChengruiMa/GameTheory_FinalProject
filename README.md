@@ -68,19 +68,11 @@ The market simulation includes:
   - Saves results and generates plots
   - Analyzes equilibrium patterns
 
-### 4. Key Features
-
-- **Portfolio Management**: Each trader maintains cash and stock holdings
-- **Risk Management**: Position sizing based on confidence and risk tolerance
-- **Performance Tracking**: Returns, Sharpe ratios, strategy evolution
-- **Convergence Detection**: Monitors strategy proportions for stability
-- **Visualization**: Plots for strategy evolution, prices, and performance
-
 ## Running the Experiments
 
 ### Requirements
 ```bash
-pip install numpy pandas matplotlib seaborn
+conda install numpy pandas matplotlib seaborn (or pip if conda is not available)
 ```
 
 ### Basic Usage
@@ -149,37 +141,3 @@ The simulation produces several outputs:
 2. **Performance Metrics**: Average returns and Sharpe ratios by strategy
 3. **Evolution Plots**: How strategies and prices evolve over time
 4. **Distribution Analysis**: Final equilibrium proportions
-
-## Extending the Project
-
-### Adding New Strategies
-1. Create a new class inheriting from `Trader` in `traders.py`
-2. Implement the `decide_trades()` method
-3. Add to the initialization in `simulation.py`
-
-### Modifying Market Dynamics
-1. Adjust stock characteristics in `_initialize_market()`
-2. Modify price formation in `calculate_market_clearing_price()`
-3. Add new market features (e.g., dividends, splits)
-
-### Different Experiments
-1. Modify distributions in `create_distributions()`
-2. Adjust convergence criteria
-3. Add new performance metrics
-
-## Research Questions Addressed
-
-1. Do deterministic or stochastic strategies dominate in equilibrium?
-2. How does initial distribution affect final equilibrium?
-3. Can adaptive strategies consistently outperform fixed strategies?
-4. How does market structure (stock characteristics) affect strategy success?
-5. What role does strategy diversity play in market stability?
-
-## Future Enhancements
-
-- Add transaction costs and market frictions
-- Implement more sophisticated learning algorithms
-- Include fundamental news events
-- Add network effects between traders
-- Implement short selling and leverage
-- Include more complex order types (limit orders, stop losses)
