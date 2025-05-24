@@ -6,7 +6,7 @@ def create_distributions(total_traders: int = 100):
     """Create different trader distributions for experiments"""
     
     distributions = [
-        # Equal distribution
+        # Experiment 1: Equal distribution
         {
             'momentum': 20,
             'mean_reversion': 20,
@@ -15,7 +15,7 @@ def create_distributions(total_traders: int = 100):
             'adaptive_stochastic': 20
         },
         
-        # Deterministic heavy
+        # Experiment 2: Deterministic heavy
         {
             'momentum': 30,
             'mean_reversion': 30,
@@ -24,7 +24,7 @@ def create_distributions(total_traders: int = 100):
             'adaptive_stochastic': 5
         },
         
-        # Stochastic heavy
+        # Experiment 3: Stochastic heavy
         {
             'momentum': 10,
             'mean_reversion': 10,
@@ -33,7 +33,7 @@ def create_distributions(total_traders: int = 100):
             'adaptive_stochastic': 35
         },
         
-        # Adaptive heavy
+        # Experiment 4: Adaptive heavy
         {
             'momentum': 15,
             'mean_reversion': 15,
@@ -42,7 +42,7 @@ def create_distributions(total_traders: int = 100):
             'adaptive_stochastic': 40
         },
         
-        # Momentum dominated
+        # Experiment 5: Momentum dominated
         {
             'momentum': 40,
             'mean_reversion': 15,
@@ -51,7 +51,7 @@ def create_distributions(total_traders: int = 100):
             'adaptive_stochastic': 15
         },
         
-        # Mean reversion dominated
+        # Experiment 6: Mean reversion dominated
         {
             'momentum': 15,
             'mean_reversion': 40,
@@ -60,7 +60,7 @@ def create_distributions(total_traders: int = 100):
             'adaptive_stochastic': 15
         },
         
-        # No stochastic
+        # Experiment 7: No stochastic
         {
             'momentum': 33,
             'mean_reversion': 33,
@@ -69,7 +69,7 @@ def create_distributions(total_traders: int = 100):
             'adaptive_stochastic': 0
         },
         
-        # Only stochastic
+        # Experiment 8: Only stochastic
         {
             'momentum': 0,
             'mean_reversion': 0,
@@ -81,12 +81,55 @@ def create_distributions(total_traders: int = 100):
     
     return distributions
 
+def print_experiment_overview(distributions):
+    """Print overview of all experiments"""
+    print("="*60)
+    print("EXPERIMENT OVERVIEW")
+    print("="*60)
+    
+    for i, dist in enumerate(distributions, 1):
+        total = sum(dist.values())
+        print(f"\nExperiment {i}:")
+        print(f"  Description: {get_experiment_description(dist)}")
+        print(f"  Distribution:")
+        for strategy, count in dist.items():
+            if count > 0:
+                percentage = (count / total) * 100
+                print(f"    - {strategy.replace('_', ' ').title()}: {count} traders ({percentage:.1f}%)")
+    print("\n" + "="*60)
+
+def get_experiment_description(distribution):
+    """Generate a descriptive name for the experiment"""
+    total = sum(distribution.values())
+    
+    # Find dominant strategy
+    max_count = max(distribution.values())
+    dominant_strategies = [k for k, v in distribution.items() if v == max_count]
+    
+    if len(dominant_strategies) == 1 and max_count / total > 0.4:
+        return f"{dominant_strategies[0].replace('_', ' ').title()} Dominated"
+    elif max_count / total <= 0.25:
+        return "Equal Distribution"
+    else:
+        # Find major categories
+        deterministic = distribution.get('momentum', 0) + distribution.get('mean_reversion', 0) + distribution.get('value', 0)
+        stochastic = distribution.get('fixed_stochastic', 0) + distribution.get('adaptive_stochastic', 0)
+        
+        if deterministic > stochastic * 1.5:
+            return "Deterministic Heavy"
+        elif stochastic > deterministic * 1.5:
+            return "Stochastic Heavy"
+        else:
+            return "Mixed Strategies"
+
 def main():
     """Run the full experiment suite"""
     
-    # Create results directory
-    if not os.path.exists('results'):
-        os.makedirs('results')
+    # Create results directory structure
+    directories = ['results', 'results/data', 'results/plots']
+    for directory in directories:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
     
     # Base configuration
     config = {
@@ -98,30 +141,49 @@ def main():
     with open('results/config.json', 'w') as f:
         json.dump(config, f, indent=2)
     
-    print("Note: Traders can now evolve their strategies based on performance!")
-    print("Deterministic traders switch strategies after consecutive losses.")
-    print("Stochastic traders adjust their strategy weights based on relative performance.\n")
+    # Define trader distributions to test
+    distributions = create_distributions()
+    
+    # Print experiment overview
+    print_experiment_overview(distributions)
+    
+    print("\nNOTE: All traders can now evolve their strategies!")
+    print("- Traders switch strategies after consecutive losses")
+    print("- Strategy selection based on global performance tracking")
+    print("- Stochastic traders adjust weights based on relative performance")
+    print("\nStarting experiment suite...")
     
     # Create experiment runner
     runner = ExperimentRunner(config)
     
-    # Define trader distributions to test
-    distributions = create_distributions()
-    
     # Run experiments
-    print("Starting experiment suite...")
     summary_df = runner.run_experiment_suite(distributions, num_runs=3)
     
     # Analyze results
-    print("\n" + "="*50)
+    print("\n" + "="*60)
+    print("EXPERIMENT RESULTS SUMMARY")
+    print("="*60)
     runner.analyze_equilibria(summary_df)
     
-    print("\nExperiments complete! Results saved in 'results' directory.")
-    print("Summary statistics saved to 'results/experiment_summary.csv'")
-    print("\nKey insights:")
-    print("- Check if strategy proportions converge to different equilibria")
-    print("- Compare performance of evolving vs fixed strategies")
-    print("- Analyze which strategies dominate in different market conditions")
+    print(f"\n{'='*60}")
+    print("EXPERIMENT COMPLETE!")
+    print("="*60)
+    print("Files generated:")
+    print("📊 Summary: results/experiment_summary.csv")
+    print("📈 Individual plots: results/plots/experiment_X_Y_*.png")
+    print("📄 Detailed data: results/data/experiment_X_Y_*.json")
+    print("⚙️  Configuration: results/config.json")
+    
+    print(f"\n🔍 Key insights to explore:")
+    print("- Strategy convergence patterns across different initial distributions")
+    print("- Performance differences between evolving vs. static strategies")
+    print("- Market dynamics under different trader compositions")
+    print("- Equilibrium states and convergence times")
+    
+    print(f"\n📁 For LaTeX integration:")
+    print("- Each plot is saved as a separate high-resolution PNG")
+    print("- JSON files contain complete experimental data and metadata")
+    print("- File naming follows experiment_X.Y pattern for easy referencing")
 
 if __name__ == "__main__":
     main()

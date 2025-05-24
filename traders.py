@@ -296,18 +296,15 @@ class AdaptiveStochasticTrader(Trader):
     def __init__(self, trader_id: int, initial_cash: float, 
                  learning_rate: float = 0.1, performance_window: int = 10):
         super().__init__(trader_id, initial_cash)
-        
+
         self.learning_rate = learning_rate
         self.performance_window = performance_window
-        
-        # Initialize with equal weights
-        self.strategy_weights = {
-            'momentum': 1/3,
-            'mean_reversion': 1/3,
-            'value': 1/3
-        }
-        
-        
+
+        # Initialize with random weights summing to 1
+        strategies = ['momentum', 'mean_reversion', 'value']
+        random_weights = np.random.dirichlet(np.ones(len(strategies)))
+        self.strategy_weights = dict(zip(strategies, random_weights))
+
         self.strategies = {
             'momentum': MomentumTrader(trader_id, initial_cash),
             'mean_reversion': MeanReversionTrader(trader_id, initial_cash),
