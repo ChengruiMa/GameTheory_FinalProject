@@ -19,24 +19,35 @@ class EvolvingTrader(Trader):
         self.consecutive_losses = 0
         self.last_portfolio_value = initial_cash
         
+        # Adaptive stochastic traders cannot evolve/switch strategies
+        self.can_evolve = initial_strategy != 'adaptive_stochastic'
+        
         # Track performance by strategy globally (shared across all evolving traders)
+        # Exclude adaptive_stochastic from global tracking since it's not switchable
         if not hasattr(EvolvingTrader, 'global_strategy_performance'):
             EvolvingTrader.global_strategy_performance = {
                 'momentum': [],
                 'mean_reversion': [],
                 'value': [],
-                'fixed_stochastic': [],
-                'adaptive_stochastic': []
+                'fixed_stochastic': []
+                # Note: adaptive_stochastic is excluded
             }
         
-        # Create all strategy instances including stochastic ones
-        self.strategies = {
-            'momentum': MomentumTrader(trader_id, initial_cash),
-            'mean_reversion': MeanReversionTrader(trader_id, initial_cash),
-            'value': ValueTrader(trader_id, initial_cash),
-            'fixed_stochastic': FixedStochasticTrader(trader_id, initial_cash),
-            'adaptive_stochastic': AdaptiveStochasticTrader(trader_id, initial_cash)
-        }
+        # Create strategy instances
+        # Adaptive stochastic traders only have their own strategy
+        if initial_strategy == 'adaptive_stochastic':
+            self.strategies = {
+                'adaptive_stochastic': AdaptiveStochasticTrader(trader_id, initial_cash)
+            }
+        else:
+            # Other traders can switch between all strategies except adaptive_stochastic
+            self.strategies = {
+                'momentum': MomentumTrader(trader_id, initial_cash),
+                'mean_reversion': MeanReversionTrader(trader_id, initial_cash),
+                'value': ValueTrader(trader_id, initial_cash),
+                'fixed_stochastic': FixedStochasticTrader(trader_id, initial_cash)
+                # Note: adaptive_stochastic is excluded from switchable strategies
+            }
         
         # Share portfolio across strategies
         for strategy in self.strategies.values():
@@ -49,23 +60,25 @@ class EvolvingTrader(Trader):
         current_value = self.portfolio.get_value(market_prices)
         period_return = (current_value / self.last_portfolio_value) - 1
         
-        # Update global performance tracking
-        EvolvingTrader.global_strategy_performance[self.current_strategy_name].append(period_return)
+        # Only track performance globally for switchable strategies
+        if self.can_evolve and self.current_strategy_name in EvolvingTrader.global_strategy_performance:
+            EvolvingTrader.global_strategy_performance[self.current_strategy_name].append(period_return)
+            
+            # Keep only recent performance
+            if len(EvolvingTrader.global_strategy_performance[self.current_strategy_name]) > self.performance_window:
+                EvolvingTrader.global_strategy_performance[self.current_strategy_name].pop(0)
         
-        # Keep only recent performance
-        if len(EvolvingTrader.global_strategy_performance[self.current_strategy_name]) > self.performance_window:
-            EvolvingTrader.global_strategy_performance[self.current_strategy_name].pop(0)
-        
-        # Track consecutive losses
-        if period_return < 0:
-            self.consecutive_losses += 1
-        else:
-            self.consecutive_losses = 0
-        
-        # Switch strategy if too many consecutive losses
-        if self.consecutive_losses >= self.switching_threshold:
-            self.switch_to_best_strategy()
-            self.consecutive_losses = 0
+        # Track consecutive losses for strategy switching (only for evolving traders)
+        if self.can_evolve:
+            if period_return < 0:
+                self.consecutive_losses += 1
+            else:
+                self.consecutive_losses = 0
+            
+            # Switch strategy if too many consecutive losses
+            if self.consecutive_losses >= self.switching_threshold:
+                self.switch_to_best_strategy()
+                self.consecutive_losses = 0
         
         # Update adaptive stochastic weights if using that strategy
         if self.current_strategy_name == 'adaptive_stochastic':
@@ -75,8 +88,13 @@ class EvolvingTrader(Trader):
     
     def switch_to_best_strategy(self):
         """Switch to the best performing strategy based on recent global performance"""
+        # Only evolving traders can switch strategies
+        if not self.can_evolve:
+            return
+        
         avg_performance = {}
         
+        # Only consider switchable strategies (excludes adaptive_stochastic)
         for strategy_name, returns in EvolvingTrader.global_strategy_performance.items():
             if returns:
                 # Calculate average return and Sharpe-like metric
@@ -88,13 +106,14 @@ class EvolvingTrader(Trader):
             else:
                 avg_performance[strategy_name] = 0
         
-        # Find best strategy
+        # Find best strategy among available options
         if avg_performance:
             best_strategy = max(avg_performance, key=avg_performance.get)
             
             # Only switch if it's different and significantly better
+            current_performance = avg_performance.get(self.current_strategy_name, 0)
             if (best_strategy != self.current_strategy_name and 
-                avg_performance[best_strategy] > avg_performance.get(self.current_strategy_name, 0) * 1.1):
+                avg_performance[best_strategy] > current_performance * 1.1):
                 
                 self.current_strategy_name = best_strategy
                 self.current_strategy = self.strategies[best_strategy]

@@ -9,9 +9,9 @@ This project implements an agent-based simulation of a financial market to study
 ├── market.py              # Market mechanics and price formation
 ├── traders.py             # Trader classes and strategies
 ├── simulation.py          # Simulation engine and analysis
-├── run_experiments.py     # Main experiment runner
-├── results/              # Output directory for results
-└── README.md             # This file
+├── run_experiments.py     # Experiment runner
+├── results/              
+└── README.md             
 ```
 
 ## Components
@@ -32,7 +32,7 @@ The market simulation includes:
   - Price impact coefficient
 
 ### 2. Trading Strategies (`traders.py`)
-
+With the exception of Adaptive Stochastic Traders (since they are already "learning" from the market), after 5 consecutive losses, traders evaluate all strategies (with the exception of Adaptive Stochastic) using a Sharpelike score and switch if another strategy outperforms the current one by a fixed threshold.
 #### Deterministic Strategies
 1. **Momentum Trader**: Buys rising stocks, sells falling ones
    - Uses lookback period to calculate returns
@@ -140,4 +140,4 @@ The simulation produces several outputs:
 1. **Convergence Analysis**: Whether strategy proportions stabilize
 2. **Performance Metrics**: Average returns and Sharpe ratios by strategy
 3. **Evolution Plots**: How strategies and prices evolve over time
-4. **Distribution Analysis**: Final equilibrium proportions
+4. **Distribution Analysis**: Final (equilibrium, if it is) proportions
